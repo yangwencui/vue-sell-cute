@@ -48,7 +48,7 @@
     return ret
   }
   export default {
-    name: 'shopcart',
+    name: 'shop-cart',
     components: { Bubble },
     props: {
       selectFood: {
@@ -64,12 +64,20 @@
       minPrice: {
         type: Number,
         default: 0
+      },
+      fold: {
+        type: Boolean,
+        default: true
       }
     },
     data () {
       return {
-        balls: createBalls()
+        balls: createBalls(),
+        listFold: this.fold
       }
+    },
+    created () {
+      this.dropBalls = []
     },
     computed: {
       totalPrice () {
@@ -104,34 +112,57 @@
         }
       }
     },
-    created () {
-      this.dropBalls = []
-      this.fold = true
-    },
     methods: {
       toggleList () {
-        if (this.fold) {
+        if (this.listFold) {
           if (!this.totalCount) {
             return
           }
-          this.fold = false
+          this.listFold = false
           this._showShopCartList()
+          this._shopCartListSticky()
         } else {
-          this.fold = true
+          this.listFold = true
           this._hideShopCartList()
         }
       },
       _showShopCartList () {
-        // this.shopCartListComp = this.shopCartListComp || this.creatShopCartList ({
-        //   $props: {
-        //     selectFood: 'selectFood'
-        //   }
-        // })
-        // this.shopCartListComp.show()
-
+        this.shopCartListComp = this.shopCartListComp || this.$createShopCartList({
+          $props: {
+            selectFood: 'selectFood'
+          },
+          $events: {
+            leave: () => {
+              this._hideShopCartSticky()
+            },
+            hide: () => {
+              this.listFold = true
+            },
+            add: (el) => {
+              this.shopCartStickyComp.drop(el)
+            }
+          }
+        })
+        this.shopCartListComp.show()
+      },
+      _shopCartListSticky () {
+        this.shopCartStickyComp = this.shopCartStickyComp || this.$createShopCartSticky({
+          $props: {
+            selectFood: 'selectFood',
+            deliveryPrice: 'deliveryPrice',
+            minPrice: 'minPrice',
+            fold: 'listFold',
+            list: this.shopCartListComp
+          }
+        })
+        this.shopCartStickyComp.show()
       },
       _hideShopCartList () {
-        // this.shopCartListComp.hide()
+        const list = this.sticky ? this.$parent.list : this.shopCartListComp
+        list.hide && list.hide()
+      },
+      _hideShopCartSticky () {
+        this.shopCartStickyComp.hide()
       },
       drop (el) {
         for (let i = 0; i < this.balls.length; i++) {
@@ -166,6 +197,16 @@
         if (ball) {
           ball.show = false
           el.style.display = 'none'
+        }
+      }
+    },
+    watch: {
+      fold (newVal) {
+        this.listFold = newVal
+      },
+      totalCount (count) {
+        if (!this.fold && count === 0) {
+          this._hideShopCartList()
         }
       }
     }

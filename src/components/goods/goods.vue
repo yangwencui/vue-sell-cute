@@ -36,7 +36,9 @@
          :title="good.title"
        >
          <ul>
-           <li v-for="food in good.foods"
+           <li
+             @click="selectFood(food)"
+             v-for="food in good.foods"
                :key="food.name"
                 class="food-item"
            >
@@ -73,7 +75,7 @@
 
 <script>
   import { getGoods } from '../../api'
-  import ShopCart from '../../components/shopcart/shopcart'
+  import ShopCart from '../shopcart/shop-cart'
   import Cartcontrol from '../../components/cart-control/cart-control'
   import Bubble from '../../components/bubble/bubble'
   import SupportIco from '../support-icon/support-icon'
@@ -83,13 +85,21 @@
       data: {
         type: Object,
         default () {
-          return {}
+          return {
+            goods: [],
+            selectedFood: {},
+            scrollOptions: {
+              click: false,
+              directionLockThreshold: 0
+            }
+          }
         }
       }
     },
     data () {
       return {
         goods: [],
+        selectedFood: {},
         scrollOptions: {
           click: false,
           directionLockThreshold: 0
@@ -125,7 +135,7 @@
             count
           })
         })
-        console.log(ret)
+
         return ret
       }
     },
@@ -135,7 +145,46 @@
           this.goods = goods
         })
       },
-      onAdd (target) {
+      selectFood (food) {
+        this.selectedFood = food
+        console.log('show food detail')
+        this._showFood()
+        this._showShopCartSticky()
+      },
+      _showFood () {
+        this.foodComp = this.foodComp || this.$createFood({
+          $props: {
+            food: 'selectedFood'
+          },
+          $events: {
+            leave: () => {
+              console.log('hide food detail')
+              console.log(this.shopCartStickyComp)
+              this._hideShopCartSticky()
+             },
+            add: (target) => {
+              console.log(this.shopCartStickyComp)
+              this.shopCartStickyComp.drop(target)
+            }
+          }
+        })
+        this.foodComp.show()
+      },
+      _showShopCartSticky () {
+        this.ShopCartStickyComp = this.ShopCartStickyComp || this.$createShopCartSticky({
+          $props: {
+            selectFoods: 'selectFoods',
+            deliveryPrice: this.seller.deliveryPrice,
+            minPrice: this.seller.minPrice,
+            fold: true
+          }
+        })
+        this.ShopCartStickyComp.show()
+      },
+      _hideShopCartSticky () {
+        this.ShopCartStickyComp.hide()
+      },
+        onAdd (target) {
         this.$refs.shopcart.drop(target)
       }
     },
